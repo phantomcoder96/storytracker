@@ -1,0 +1,7 @@
+venv/
+.env
+__pycache__/
+*.pyc
+processed_stories.db
+session-*
+*.log
