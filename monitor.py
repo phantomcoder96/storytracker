@@ -256,7 +256,7 @@ def main():
         print(f"An unexpected error occurred: {e}")
     finally:
         conn.close()
-        print(f"[{datetime.now()}] Lumina-IG Monitor finished.")
+        print(f"[{datetime.now()}] Automated Instagram Story Notifications finished.")
 
 if __name__ == "__main__":
     main()

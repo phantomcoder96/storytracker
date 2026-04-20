@@ -1,0 +1,14 @@
+[Unit]
+Description=Run IG Monitor immediately after waking up
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+User=rain
+WorkingDirectory=/home/rain/Downloads/storytracker
+# Give the system 10 seconds to re-establish Wi-Fi/network connection
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/rain/Downloads/storytracker/venv/bin/python monitor.py
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target

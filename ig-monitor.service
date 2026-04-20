@@ -1,0 +1,12 @@
+[Unit]
+Description=Automated Instagram Story Notifications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/rain/Downloads/storytracker
+ExecStart=/home/rain/Downloads/storytracker/venv/bin/python monitor.py
+StandardOutput=append:/home/rain/Downloads/storytracker/monitor.log
+StandardError=append:/home/rain/Downloads/storytracker/monitor.log
+User=rain
