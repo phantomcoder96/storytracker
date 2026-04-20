@@ -194,6 +194,37 @@ def send_alert(story_id, target_username, story_data):
         print(f"Exception when calling Brevo API: {e}")
         return False
 
+def send_error_email(source, error_message):
+    """Sends an email alert when a critical error occurs in the pipeline."""
+    try:
+        configuration = brevo_python.Configuration()
+        configuration.api_key['api-key'] = BREVO_API_KEY
+        api_instance = brevo_python.TransactionalEmailsApi(brevo_python.ApiClient(configuration))
+        
+        html_content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f44336; border-radius: 8px;">
+                    <h2 style="color: #f44336;">⚠️ Story Tracker Error Alert</h2>
+                    <p><strong>Source:</strong> {source}</p>
+                    <p><strong>Error Details:</strong></p>
+                    <pre style="background: #f8f8f8; padding: 10px; border-left: 4px solid #f44336; white-space: pre-wrap;">{error_message}</pre>
+                </div>
+            </body>
+        </html>
+        """
+        
+        send_smtp_email = brevo_python.SendSmtpEmail(
+            to=[{"email": TO_EMAIL}],
+            sender={"email": SENDER_EMAIL, "name": "StoryTracker Alerts"},
+            subject=f"⚠️ Alert: StoryTracker Error from {source}",
+            html_content=html_content
+        )
+        api_instance.send_transac_email(send_smtp_email)
+        print(f"[{datetime.now()}] Sent error alert email to administrator.")
+    except Exception as e:
+        print(f"Failed to send error email: {e}")
+
 def main():
     print(f"[{datetime.now()}] Starting IG Monitor...")
     
@@ -218,7 +249,9 @@ def main():
         loader.load_session_from_file(BURNER_USERNAME, filename=f"session-{BURNER_USERNAME}")
         print(f"Session loaded for {BURNER_USERNAME}.")
     except Exception as e:
-        print(f"Could not load session for {BURNER_USERNAME}. Make sure to generate it locally using 'instaloader --login {BURNER_USERNAME}'. Error: {e}")
+        error_msg = f"Could not load session for {BURNER_USERNAME}. Make sure to generate it locally using 'instaloader --login {BURNER_USERNAME}'. Error: {e}"
+        print(error_msg)
+        send_error_email("AWS EC2 Cloud Worker", error_msg)
         return
 
     TARGET_USERID = os.getenv("TARGET_USERID")
@@ -251,9 +284,13 @@ def main():
                     pass
                     
     except instaloader.exceptions.InstaloaderException as e:
-        print(f"Instaloader error: {e}")
+        error_msg = f"Instaloader error: {e}"
+        print(error_msg)
+        send_error_email("AWS EC2 Cloud Worker", error_msg)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        error_msg = f"An unexpected error occurred: {e}"
+        print(error_msg)
+        send_error_email("AWS EC2 Cloud Worker", error_msg)
     finally:
         conn.close()
         print(f"[{datetime.now()}] Automated Instagram Story Notifications finished.")
