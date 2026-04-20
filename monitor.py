@@ -11,6 +11,14 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+# Set up proxy if provided (bypasses AWS IP bans)
+IG_PROXY = os.getenv("IG_PROXY")
+if IG_PROXY:
+    os.environ["http_proxy"] = IG_PROXY
+    os.environ["https_proxy"] = IG_PROXY
+    print(f"[{datetime.now()}] Proxy configured. Routing traffic through proxy...")
+
+# Configuration
 TARGET_USERNAME = os.getenv("TARGET_USERNAME")
 BURNER_USERNAME = os.getenv("BURNER_USERNAME")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
