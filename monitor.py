@@ -64,23 +64,56 @@ def extract_story_data(item):
         "is_video": item.is_video
     }
     
+    # DEBUG: Dump the first node we see to a file
+    import json
+    # Recursive function to find keys anywhere in the nested Instagram JSON
+    def find_keys(d, target_key):
+        results = []
+        if isinstance(d, dict):
+            if target_key in d:
+                results.append(d[target_key])
+            for k, v in d.items():
+                results.extend(find_keys(v, target_key))
+        elif isinstance(d, list):
+            for i in d:
+                results.extend(find_keys(i, target_key))
+        return results
+
     # 1. Standard text caption (often used for accessibility or direct text)
     if item.caption:
         data["text"].append(item.caption)
         
     # 2. Extract from raw JSON node (sticker data)
     node = item._node
-    
-    # Search for link stickers
-    if 'story_link_stickers' in node:
-        for sticker in node['story_link_stickers']:
-            if 'story_link' in sticker and 'url' in sticker['story_link']:
-                data["links"].append(sticker['story_link']['url'])
-                
-    # Story app attributions or other external URLs (Instaloader exposes this sometimes)
-    if hasattr(item, 'external_url') and item.external_url:
-        if item.external_url not in data["links"]:
-            data["links"].append(item.external_url)
+    import re
+
+    # Find all instances of link stickers anywhere in the tree
+    for stickers in find_keys(node, 'story_link_stickers'):
+        stickers_str = str(stickers)
+        urls = re.findall(r"'(?:url|webUri|display_url)':\s*'([^']+)'", stickers_str)
+        for u in urls:
+            if "cdninstagram" not in u and "fbcdn" not in u:
+                if u not in data["links"]:
+                    data["links"].append(u)
+
+    # Find bloks stickers anywhere
+    for stickers in find_keys(node, 'story_bloks_stickers'):
+        stickers_str = str(stickers)
+        urls = re.findall(r"'(?:url|webUri|uri|link|display_url)':\s*'([^']+)'", stickers_str)
+        raw_http = re.findall(r"(https?://[^\s']+)", stickers_str)
+        for u in urls + raw_http:
+            if "cdninstagram" not in u and "fbcdn" not in u:
+                if u not in data["links"]:
+                    data["links"].append(u)
+
+    # Find app attributions anywhere
+    for attrs in find_keys(node, 'story_app_attribution'):
+        attrs_str = str(attrs)
+        urls = re.findall(r"'(?:url|webUri|fallback_url|display_url)':\s*'([^']+)'", attrs_str)
+        for u in urls:
+            if "cdninstagram" not in u and "fbcdn" not in u:
+                if u not in data["links"]:
+                    data["links"].append(u)
 
     # Note: text stickers are often burned into the image or stored in complex JSON structures 
     # under 'story_bloks_stickers' or 'story_text_stickers' which frequently change.
@@ -123,7 +156,7 @@ def send_alert(story_id, target_username, story_data):
         html_content += "</ul>"
         
     if base64_image:
-        html_content += f'<hr><p><strong>Thumbnail:</strong></p><img src="data:image/jpeg;base64,{base64_image}" alt="Story Thumbnail" style="max-width: 100%; height: auto; border-radius: 8px;"/>'
+        html_content += f'<hr><p><strong>Media Link:</strong> <a href="{story_data["image_url"]}">View Source Media</a></p>'
     else:
         html_content += f'<hr><p><em>Could not download thumbnail. Original URL: <a href="{story_data["image_url"]}">Link</a></em></p>'
 
@@ -133,12 +166,17 @@ def send_alert(story_id, target_username, story_data):
     </html>
     """
 
-    send_smtp_email = brevo_python.SendSmtpEmail(
-        to=[{"email": TO_EMAIL}],
-        sender={"email": SENDER_EMAIL, "name": "Lumina-IG Monitor"},
-        subject=f"New Instagram Story from @{target_username}",
-        html_content=html_content
-    )
+    send_kwargs = {
+        "to": [{"email": TO_EMAIL}],
+        "sender": {"email": SENDER_EMAIL, "name": "Sudo"},
+        "subject": f"New Instagram Story from @{target_username}",
+        "html_content": html_content
+    }
+    
+    if base64_image:
+        send_kwargs["attachment"] = [{"content": base64_image, "name": f"story_{story_id}.jpg"}]
+
+    send_smtp_email = brevo_python.SendSmtpEmail(**send_kwargs)
     
     try:
         api_instance.send_transac_email(send_smtp_email)
@@ -149,7 +187,7 @@ def send_alert(story_id, target_username, story_data):
         return False
 
 def main():
-    print(f"[{datetime.now()}] Starting Lumina-IG Monitor...")
+    print(f"[{datetime.now()}] Starting IG Monitor...")
     
     if not all([TARGET_USERNAME, BURNER_USERNAME, BREVO_API_KEY, TO_EMAIL, SENDER_EMAIL]):
         print("Error: Missing environment variables. Please check your .env file.")
@@ -164,7 +202,7 @@ def main():
         download_videos=False,
         download_geotags=False,
         download_comments=False,
-        save_metadata=False
+        save_metadata=True
     )
     
     # Load session
