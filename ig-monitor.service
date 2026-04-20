@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/home/rain/Downloads/storytracker
+ExecStartPre=/home/rain/Downloads/storytracker/venv/bin/python import_session.py brave
 ExecStart=/home/rain/Downloads/storytracker/venv/bin/python monitor.py
 StandardOutput=append:/home/rain/Downloads/storytracker/monitor.log
 StandardError=append:/home/rain/Downloads/storytracker/monitor.log
