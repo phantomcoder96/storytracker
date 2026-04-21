@@ -1,4 +1,4 @@
-# Automated Instagram Story Notifications
+# Automated Instagram Story Notifications for Job Applications
 
 ## Project Overview
 Automated Instagram Story Notifications is an automated script designed to track targeted Instagram accounts, extract their stories (including images and embedded links), and deliver them directly to an email inbox.
