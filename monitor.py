@@ -174,9 +174,11 @@ def send_alert(story_id, target_username, story_data):
     </html>
     """
 
+    to_list = [{"email": e.strip()} for e in TO_EMAIL.split(',') if e.strip()]
+    
     send_kwargs = {
-        "to": [{"email": TO_EMAIL}],
-        "sender": {"email": SENDER_EMAIL, "name": "Sudo"},
+        "to": to_list,
+        "sender": {"email": SENDER_EMAIL, "name": "StoryTracker Alerts"},
         "subject": f"New Instagram Story from @{target_username}",
         "html_content": html_content
     }
@@ -214,8 +216,9 @@ def send_error_email(source, error_message):
         </html>
         """
         
+        admin_email = TO_EMAIL.split(',')[0].strip()
         send_smtp_email = brevo_python.SendSmtpEmail(
-            to=[{"email": TO_EMAIL}],
+            to=[{"email": admin_email}],
             sender={"email": SENDER_EMAIL, "name": "StoryTracker Alerts"},
             subject=f"⚠️ Alert: StoryTracker Error from {source}",
             html_content=html_content

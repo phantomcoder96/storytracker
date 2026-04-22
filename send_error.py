@@ -6,7 +6,8 @@ from datetime import datetime
 
 load_dotenv()
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
-TO_EMAIL = os.getenv("TO_EMAIL")
+# Only send error alerts to the first email in the list (the admin)
+TO_EMAIL = os.getenv("TO_EMAIL").split(',')[0].strip()
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 
 if len(sys.argv) < 3:

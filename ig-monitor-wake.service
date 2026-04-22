@@ -8,7 +8,7 @@ User=rain
 WorkingDirectory=/home/rain/Downloads/storytracker
 # Give the system 10 seconds to re-establish Wi-Fi/network connection
 ExecStartPre=/bin/sleep 10
-ExecStart=/home/rain/Downloads/storytracker/venv/bin/python monitor.py
+ExecStart=/bin/bash /home/rain/Downloads/storytracker/sync_cookie.sh
 
 [Install]
 WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
